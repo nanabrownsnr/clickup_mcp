@@ -1,0 +1,9 @@
+
+# Worker-managed local and generated files
+.env
+.env.*
+!.env.example
+.venv/
+logs/
+.cache/
+node_modules/
