@@ -1,19 +1,22 @@
 Metadata-Version: 2.4
 Name: clickup-mcp
 Version: 1.0.0
-Summary: Integrates ClickUp tasks, spaces, lists, and updates.
-Requires-Python: >=3.12
-Requires-Dist: pydantic>=2.0
-Requires-Dist: pydantic-settings>=2.0
-Requires-Dist: fastapi>=0.115.0
-Requires-Dist: uvicorn>=0.23.0
-Requires-Dist: mcp<2.0.0,>=1.0.0
-Requires-Dist: httpx>=0.27.0
-Requires-Dist: pymongo>=4.6.0
-Requires-Dist: cryptography>=41.0.0
+Summary: ClickUp MCP server — integrates with ClickUp tasks, spaces, and lists.
+Requires-Python: <4,>=3.11
+Requires-Dist: fastmcp>=4.0.0
+Requires-Dist: uvicorn>=0.29.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pydantic-settings>=2.0.0
+Requires-Dist: python-dotenv>=1.0.0
 Requires-Dist: python-multipart>=0.0.6
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pymongo>=4.0.0
+Requires-Dist: cryptography>=41.0.0
 Requires-Dist: pyjwt>=2.8.0
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: starlette>=0.35.0
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
-Requires-Dist: httpx-mock>=0.2.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: httpx>=0.27.0; extra == "dev"

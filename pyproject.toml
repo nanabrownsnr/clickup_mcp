@@ -5,41 +5,37 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "clickup-mcp"
 version = "1.0.0"
-description = "Integrates ClickUp tasks, spaces, lists, and updates."
-requires-python = ">=3.12"
+description = "ClickUp MCP server — integrates with ClickUp tasks, spaces, and lists."
+requires-python = ">=3.11,<4"
 dependencies = [
-    "pydantic>=2.0",
-    "pydantic-settings>=2.0",
-    "fastapi>=0.115.0",
-    "uvicorn>=0.23.0",
-    "mcp>=1.0.0,<2.0.0",
-    "httpx>=0.27.0",
-    "pymongo>=4.6.0",
-    "cryptography>=41.0.0",
+    "fastmcp>=4.0.0",
+    "uvicorn>=0.29.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
     "python-multipart>=0.0.6",
+    "httpx>=0.27.0",
+    "pymongo>=4.0.0",
+    "cryptography>=41.0.0",
     "pyjwt>=2.8.0",
+    "python-jose[cryptography]>=3.3.0",
+    "starlette>=0.35.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23.0",
-    "httpx-mock>=0.2.0",
+    "pytest-cov>=4.0.0",
+    "httpx>=0.27.0",
 ]
 
 [project.scripts]
-clickup-mcp = "clickup_mcp.__main__:main"
+clickup-mcp = "clickup_mcp.main:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-dir]
-"" = "src"
-
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-pythonpath = ["src"]

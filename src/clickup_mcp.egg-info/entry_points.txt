@@ -1,2 +1,2 @@
 [console_scripts]
-clickup-mcp = clickup_mcp.__main__:main
+clickup-mcp = clickup_mcp.main:app
