@@ -14,7 +14,7 @@ from starlette.middleware.cors import CORSMiddleware
 from clickup_mcp.config import settings
 from clickup_mcp.license import license_watcher
 from clickup_mcp.storage import TokenStore, set_active_store
-from clickup_mcp.tools.base import register_mcp_tools
+from clickup_mcp.tools.base import register_mcp_tools, _set_current_identity
 from clickup_mcp.twynity import register_routes
 from clickup_mcp.usage import save_usage_report
 
@@ -46,6 +46,22 @@ mcp = FastMCP(
 )
 
 
+class IdentityMiddleware(MCPMiddleware):
+    """Set the per-request (user_id, persona_id) identity for tool calls."""
+
+    async def on_call_tool(self, context: MiddlewareContext, call_next):
+        try:
+            headers = context.request.headers if context.request else {}
+            persona_id = headers.get(settings.PERSONA_ID_HEADER.lower(), "anonymous")
+            # user_id would come from the verified JWT; in unauthenticated
+            # mode fall back to the persona header for scoping.
+            user_id = headers.get("x-twynity-user-id", "anonymous")
+            _set_current_identity(user_id, persona_id)
+        except Exception:
+            _set_current_identity("anonymous", "anonymous")
+        return await call_next(context)
+
+
 class UsageTrackingMiddleware(MCPMiddleware):
     async def on_call_tool(self, context: MiddlewareContext, call_next):
         try:
@@ -60,6 +76,7 @@ class UsageTrackingMiddleware(MCPMiddleware):
         return await call_next(context)
 
 
+mcp.add_middleware(IdentityMiddleware())
 mcp.add_middleware(UsageTrackingMiddleware())
 
 register_routes(mcp)

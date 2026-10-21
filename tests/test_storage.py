@@ -41,8 +41,7 @@ def _mock_collection():
 class TestTokenStore:
     def test_init_no_connection(self):
         with patch("clickup_mcp.storage.AsyncMongoClient") as mock:
-            mock_client = MagicMock()
-            mock.return_value = mock_client
+            mock.return_value = MagicMock()
             settings = _make_settings()
             store = TokenStore(settings)
             assert store._client is None
@@ -55,7 +54,7 @@ class TestTokenStore:
             settings = _make_settings()
             store = TokenStore(settings)
             assert store._client is None
-            await store.save_token("user-1", "ws-123", {"encrypted_token": "abc"})
+            await store.save_token("u1", "p1", "ws-123", {"encrypted_token": "abc"})
             assert store._client is not None
             collection.replace_one.assert_called_once()
 
@@ -67,7 +66,7 @@ class TestTokenStore:
         with patch("clickup_mcp.storage.AsyncMongoClient", return_value=mock_client):
             settings = _make_settings()
             store = TokenStore(settings)
-            result = await store.get_token("user-1", "ws-123")
+            result = await store.get_token("u1", "p1", "ws-123")
             assert result is not None
             assert result["workspace_id"] == "ws-123"
 
@@ -78,7 +77,7 @@ class TestTokenStore:
         with patch("clickup_mcp.storage.AsyncMongoClient", return_value=mock_client):
             settings = _make_settings()
             store = TokenStore(settings)
-            result = await store.get_token("user-1", "ws-999")
+            result = await store.get_token("u1", "p1", "ws-999")
             assert result is None
 
     async def test_delete_token_found(self):
@@ -89,7 +88,7 @@ class TestTokenStore:
         with patch("clickup_mcp.storage.AsyncMongoClient", return_value=mock_client):
             settings = _make_settings()
             store = TokenStore(settings)
-            result = await store.delete_token("user-1", "ws-123")
+            result = await store.delete_token("u1", "p1", "ws-123")
             assert result is True
 
     async def test_delete_token_not_found(self):
@@ -100,7 +99,7 @@ class TestTokenStore:
         with patch("clickup_mcp.storage.AsyncMongoClient", return_value=mock_client):
             settings = _make_settings()
             store = TokenStore(settings)
-            result = await store.delete_token("user-1", "ws-999")
+            result = await store.delete_token("u1", "p1", "ws-999")
             assert result is False
 
     def test_active_store_get_set(self):

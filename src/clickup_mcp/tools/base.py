@@ -1,11 +1,12 @@
 """ClickUp MCP tools: list_tasks, create_task.
 
 Uses @mcp.tool() returning ToolResult (fastmcp 4.x).
+Tokens are scoped to (user_id, persona_id, workspace_id).
 """
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from fastmcp.tools import ToolResult
 
@@ -33,10 +34,9 @@ def register_mcp_tools(mcp, settings: Settings):
         store = get_active_store()
         if store is None:
             raise ValueError("Token storage is not available")
-
-        persona_id = _get_current_persona_id()
-        resolved_workspace = await _resolve_workspace(store, persona_id, workspace_id)
-        client = await _get_authenticated_client(store, settings, resolved_workspace, persona_id)
+        identity = _get_current_identity()
+        resolved_workspace = await _resolve_workspace(store, identity, workspace_id)
+        client = await _get_authenticated_client(store, settings, resolved_workspace, identity)
 
         task_filter_parts = ["workspace=" + resolved_workspace]
         if list_id:
@@ -91,10 +91,9 @@ def register_mcp_tools(mcp, settings: Settings):
         store = get_active_store()
         if store is None:
             raise ValueError("Token storage is not available")
-
-        persona_id = _get_current_persona_id()
-        resolved_workspace = await _resolve_workspace(store, persona_id, workspace_id)
-        client = await _get_authenticated_client(store, settings, resolved_workspace, persona_id)
+        identity = _get_current_identity()
+        resolved_workspace = await _resolve_workspace(store, identity, workspace_id)
+        client = await _get_authenticated_client(store, settings, resolved_workspace, identity)
 
         result = await client.create_task(
             list_id=list_id, name=name, description=description or "",
@@ -121,27 +120,37 @@ def register_mcp_tools(mcp, settings: Settings):
         )
 
 
-_current_persona_id_var: str = "anonymous"
+# ---- per-request identity context (set by the route/transport layer) ----
+
+class Identity:
+    __slots__ = ("user_id", "persona_id")
+
+    def __init__(self, user_id: str, persona_id: str):
+        self.user_id = user_id
+        self.persona_id = persona_id
 
 
-def _get_current_persona_id() -> str:
-    return _current_persona_id_var
+_current_identity: Identity = Identity("anonymous", "anonymous")
 
 
-def _set_current_persona_id(persona_id: str):
-    global _current_persona_id_var
-    _current_persona_id_var = persona_id
+def _get_current_identity() -> Identity:
+    return _current_identity
 
 
-async def _get_authenticated_client(store, settings, workspace_id, persona_id):
-    """Get ClickUp client from stored token (OAuth2 or PAT)."""
-    oauth_token_doc = await store.get_oauth_token(persona_id, workspace_id)
+def _set_current_identity(user_id: str, persona_id: str):
+    global _current_identity
+    _current_identity = Identity(user_id, persona_id)
+
+
+async def _get_authenticated_client(store, settings, workspace_id, identity):
+    """Get ClickUp client from stored token (OAuth2 first, then PAT)."""
+    oauth_token_doc = await store.get_oauth_token(identity.user_id, identity.persona_id, workspace_id)
     if oauth_token_doc:
         try:
             access_token = decrypt_token(
                 oauth_token_doc["encrypted_access_token"],
                 settings.ENCRYPTION_KEY,
-                persona_id + ":" + workspace_id,
+                identity.persona_id + ":" + workspace_id,
             )
             client = ClickUpClient(settings)
             client._access_token = access_token
@@ -149,27 +158,28 @@ async def _get_authenticated_client(store, settings, workspace_id, persona_id):
         except Exception:
             pass
 
-    token_doc = await store.get_token(persona_id, workspace_id)
+    token_doc = await store.get_token(identity.user_id, identity.persona_id, workspace_id)
     if not token_doc:
         raise ValueError(
-            "No API token found for persona=" + persona_id + ", workspace=" + workspace_id
-            + ". Please connect a workspace first."
+            "No ClickUp token found for this user/persona/workspace. "
+            "Please connect a workspace first."
         )
     access_token = decrypt_token(
-        token_doc["encrypted_token"], settings.ENCRYPTION_KEY, persona_id,
+        token_doc["encrypted_token"], settings.ENCRYPTION_KEY, identity.persona_id,
     )
     client = ClickUpClient(settings)
     client._access_token = access_token
     return client
 
 
-async def _resolve_workspace(store, persona_id, workspace_id):
+async def _resolve_workspace(store, identity, workspace_id):
     if not workspace_id:
-        tokens = await store.get_all_tokens(persona_id)
+        tokens = await store.get_all_tokens(identity.user_id, identity.persona_id)
         if not tokens:
-            raise ValueError(
-                "No workspace selected and no connected workspaces found."
-            )
+            oauth = await store.get_oauth_tokens_by_persona(identity.user_id, identity.persona_id)
+            tokens = oauth
+        if not tokens:
+            raise ValueError("No workspace selected and no connected workspaces found.")
         workspace_id = tokens[0]["workspace_id"]
     return workspace_id
 

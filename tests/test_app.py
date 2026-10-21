@@ -58,7 +58,10 @@ class TestOAuthLoginEndpoint:
             yield TestClient(mcp.http_app())
 
     def test_login_oauth_not_configured(self, client):
-        resp = client.get("/api/v1/auth/clickup/login")
+        resp = client.get(
+            "/api/v1/auth/clickup/login",
+            headers={"Authorization": "Bearer test-token", "Persona-Id": "persona-1"},
+        )
         assert resp.status_code == 400
         data = resp.json()
         assert data["error"]["code"] == "oauth_not_configured"
