@@ -1,2 +1,0 @@
-[console_scripts]
-clickup-mcp = clickup_mcp.main:app

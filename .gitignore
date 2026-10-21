@@ -7,3 +7,4 @@
 logs/
 .cache/
 node_modules/
+src/clickup_mcp.egg-info/
